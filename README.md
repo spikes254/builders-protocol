@@ -37,7 +37,7 @@ Open it in a browser — it works. Send the file to someone — it works. Host i
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/builders-protocol.git
+git clone https://github.com/spikes254/builders-protocol.git
 
 # Open locally — no server needed
 open index.html          # macOS
@@ -45,7 +45,7 @@ start index.html         # Windows
 xdg-open index.html      # Linux
 ```
 
-Or just [open the live version →](https://YOUR_USERNAME.github.io/builders-protocol)
+Or just [open the live version →](https://spikes254.github.io/builders-protocol)
 
 ---
 
