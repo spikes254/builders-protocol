@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Builder's Protocol — A Legacy Codex</title>
+<style>
+  :root {
+    --bg:       #07080d;
+    --surface:  #0e1018;
+    --border:   #1e2333;
+    --amber:    #f59e0b;
+    --amber-dim:#7c4f06;
+    --blue:     #38bdf8;
+    --red:      #f87171;
+    --green:    #4ade80;
+    --text:     #d4d8e8;
+    --muted:    #5a6180;
+    --white:    #f0f2ff;
+    --mono:     'Courier New', Courier, 'Lucida Console', monospace;
+    --sans:     Georgia, 'Times New Roman', serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* GRID LINES */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(7,8,13,0.88);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .nav-brand {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+
+  .nav-links a:hover {
+    color: var(--amber);
+    border-color: var(--amber-dim);
+  }
+
+  /* HERO */
+  #hero {
+    padding: 140px 0 80px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tag-line {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .tag-line::before {
+    content: '';
+    display: inline-block;
+    width: 32px;
+    height: 1px;
+    background: var(--amber);
+  }
+
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 400;
+    line-height: 1.1;
+    color: var(--white);
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+  }
+
+  h1 span.accent { color: var(--amber); }
+
+  .hero-sub {
+    font-size: 18px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.6;
+    border-left: 2px solid var(--amber);
+    padding-left: 20px;
+    font-style: italic;
+  }
+
+  .hero-meta {
+    margin-top: 36px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .meta-chip {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+
+  /* SECTIONS */
+  section {
+    padding: 80px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  h2 {
+    font-family: var(--mono);
+    font-size: clamp(18px, 3vw, 26px);
+    font-weight: 400;
+    color: var(--white);
+    letter-spacing: -0.01em;
+  }
+
+  /* LAST STATEMENT */
+  .statement-block {
+    background: var(--surface);
+    border: 1px solid var(--amber-dim);
+    border-left: 3px solid var(--amber);
+    padding: 32px;
+    margin-bottom: 0;
+  }
+
+  .statement-block p {
+    font-size: 17px;
+    color: var(--text);
+    line-height: 1.8;
+    margin-bottom: 16px;
+  }
+
+  .statement-block p:last-child { margin-bottom: 0; }
+
+  .statement-sig {
+    margin-top: 24px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* AXIOMS */
+  .axiom-grid {
+    display: grid;
+    gap: 2px;
+  }
+
+  .axiom {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px 32px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .axiom::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--amber);
+    transform: scaleY(0);
+    transition: transform 0.2s;
+    transform-origin: bottom;
+  }
+
+  .axiom:hover, .axiom.open { border-color: var(--amber-dim); }
+  .axiom:hover::before, .axiom.open::before { transform: scaleY(1); }
+
+  .axiom-top {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .axiom-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    width: 24px;
+  }
+
+  .axiom-title {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--white);
+    letter-spacing: 0.02em;
+    flex: 1;
+  }
+
+  .axiom-toggle {
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--muted);
+    transition: transform 0.2s, color 0.15s;
+  }
+
+  .axiom.open .axiom-toggle { transform: rotate(45deg); color: var(--amber); }
+
+  .axiom-body {
+    display: none;
+    padding-top: 20px;
+    padding-left: 44px;
+    border-top: 1px solid var(--border);
+    margin-top: 20px;
+  }
+
+  .axiom.open .axiom-body { display: block; }
+
+  .axiom-body p {
+    color: var(--text);
+    line-height: 1.75;
+    margin-bottom: 12px;
+    font-size: 15px;
+  }
+
+  .axiom-body .proof {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--blue);
+    background: rgba(56,189,248,0.06);
+    border: 1px solid rgba(56,189,248,0.15);
+    padding: 12px 16px;
+    margin-top: 12px;
+    border-radius: 2px;
+  }
+
+  .axiom-body .proof::before {
+    content: '→ PROOF: ';
+    color: var(--amber);
+  }
+
+  /* PROTOCOL */
+  .protocol-steps {
+    counter-reset: steps;
+  }
+
+  .proto-step {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 0;
+    margin-bottom: 2px;
+  }
+
+  .proto-step-num {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-right: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.1em;
+  }
+
+  .proto-step-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+  }
+
+  .proto-step-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--white);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .proto-step-content p {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  .proto-step-content code {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--green);
+    background: rgba(74,222,128,0.07);
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+
+  .warning-block {
+    background: rgba(248,113,113,0.06);
+    border: 1px solid rgba(248,113,113,0.2);
+    border-left: 3px solid var(--red);
+    padding: 16px 20px;
+    margin-top: 32px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--red);
+    letter-spacing: 0.05em;
+    line-height: 1.7;
+  }
+
+  .warning-block strong {
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* DECISION ENGINE */
+  #decision-engine {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+  }
+
+  .engine-header {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .engine-header .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .engine-prompt {
+    font-size: 17px;
+    color: var(--white);
+    line-height: 1.5;
+    margin-bottom: 24px;
+    min-height: 52px;
+  }
+
+  .engine-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .engine-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    padding: 14px 18px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .engine-btn::before { content: '›'; color: var(--amber); flex-shrink: 0; }
+
+  .engine-btn:hover {
+    border-color: var(--amber-dim);
+    color: var(--white);
+    background: rgba(245,158,11,0.05);
+  }
+
+  .engine-result {
+    display: none;
+    padding: 20px;
+    background: rgba(245,158,11,0.06);
+    border: 1px solid var(--amber-dim);
+    border-left: 3px solid var(--amber);
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+
+  .engine-result.visible { display: block; }
+
+  .engine-result .verdict {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--amber);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .engine-reset {
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid var(--muted);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+
+  .engine-reset:hover { border-color: var(--amber); color: var(--amber); }
+
+  /* INCOME ARCHITECTURE */
+  .income-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 2px;
+  }
+
+  .income-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px;
+    transition: border-color 0.15s;
+  }
+
+  .income-card:hover { border-color: var(--amber-dim); }
+
+  .income-card-tier {
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+
+  .income-card h3 {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--white);
+    font-weight: 400;
+    margin-bottom: 10px;
+  }
+
+  .income-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 12px;
+  }
+
+  .income-card .multiplier {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--green);
+    letter-spacing: 0.1em;
+  }
+
+  .income-truth {
+    grid-column: 1 / -1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--amber);
+    padding: 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.7;
+  }
+
+  .income-truth .label {
+    font-size: 10px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  /* HOW TO USE */
+  .how-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+  }
+
+  .how-row {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 20px 32px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+
+  .how-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+  .how-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--amber);
+    padding-top: 2px;
+  }
+
+  .how-text {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  /* FOOTER */
+  footer {
+    padding: 48px 0;
+    text-align: center;
+  }
+
+  .footer-sig {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+
+  .footer-sig span { color: var(--amber); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--amber-dim); border-radius: 2px; }
+
+  /* SELECTION */
+  ::selection { background: rgba(245,158,11,0.25); color: var(--white); }
+
+  /* ANIMATIONS */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in:nth-child(2) { animation-delay: 0.1s; }
+  .fade-in:nth-child(3) { animation-delay: 0.2s; }
+  .fade-in:nth-child(4) { animation-delay: 0.3s; }
+
+  hr.section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    nav { padding: 12px 16px; }
+    .nav-links { display: none; }
+    .wrapper { padding: 0 16px; }
+    #hero { padding: 100px 0 60px; }
+    h1 { font-size: 28px; }
+    .proto-step { grid-template-columns: 36px 1fr; }
+    .how-row { grid-template-columns: 1fr; }
+    .how-label { padding-bottom: 0; }
+    .income-grid { grid-template-columns: 1fr; }
+    .statement-block { padding: 20px; }
+    .engine-prompt { font-size: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">The Builder's Protocol</div>
+  <div class="nav-links">
+    <a href="#statement">Statement</a>
+    <a href="#axioms">Axioms</a>
+    <a href="#protocol">Protocol</a>
+    <a href="#engine">Decisions</a>
+    <a href="#income">Income</a>
+    <a href="#use">How to Use</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="wrapper">
+  <section id="hero">
+    <div class="tag-line fade-in">Legacy Codex · Nairobi, Kenya · Self-Authored</div>
+    <h1 class="fade-in">The <span class="accent">Builder's</span><br>Protocol</h1>
+    <p class="hero-sub fade-in">A complete operating system for self-taught technical builders who have no safety net, no institution, and no time to waste.</p>
+    <div class="hero-meta fade-in">
+      <span class="meta-chip">Zero Dependencies</span>
+      <span class="meta-chip">No Maintenance Required</span>
+      <span class="meta-chip">Permanent · Open Use</span>
+    </div>
+  </section>
+</div>
+
+<!-- LAST STATEMENT -->
+<div class="wrapper">
+  <section id="statement">
+    <div class="section-header">
+      <span class="section-num">00 · Last Statement</span>
+      <h2>Why This Exists</h2>
+    </div>
+    <div class="statement-block">
+      <p>I built things in conditions most people would call impossible. No tutor. No team. No guarantee that any of it would work. Just a machine, an internet connection, and the absolute refusal to accept that where you start determines where you finish.</p>
+      <p>I learned that the most expensive thing a builder can do is waste time being comfortable. That a system you built yourself — even if broken, even if ugly — teaches you more than ten courses about someone else's system. That the only real security is being genuinely difficult to replace.</p>
+      <p>I also learned I was wrong, repeatedly. About markets. About complexity. About what other people need. Being wrong fast and honestly is not failure — it is the only viable method.</p>
+      <p>What I'm leaving is not an autobiography. It's a tool. The frameworks I used to make decisions, the protocol I used to teach myself, the architecture I used to think about money, and a decision engine you can run against your own problems. Take what works. Discard what doesn't. Build something the world hasn't seen yet.</p>
+      <p>You don't owe anyone a head start. You just owe the work.</p>
+      <div class="statement-sig">— Macray · Kenya · Builder, Security Researcher, Perpetual Student</div>
+    </div>
+  </section>
+</div>
+
+<!-- AXIOMS -->
+<div class="wrapper">
+  <section id="axioms">
+    <div class="section-header">
+      <span class="section-num">01 · Five Axioms</span>
+      <h2>The Operating Principles</h2>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:32px;font-family:var(--mono);">These are not motivational abstractions. They are load-bearing rules. Remove any one and the system collapses. Click to expand each.</p>
+
+    <div class="axiom-grid" id="axiomGrid">
+
+      <div class="axiom" onclick="toggleAxiom(this)">
+        <div class="axiom-top">
+          <span class="axiom-num">01</span>
+          <span class="axiom-title">Systems over symptoms</span>
+          <span class="axiom-toggle">+</span>
+        </div>
+        <div class="axiom-body">
+          <p>When something breaks, the instinct is to fix the thing that visibly broke. This is almost always wrong. Every bug, every failed prediction, every stalled project is a signal emitted by an underlying structure. You are not fixing a bug — you are reverse-engineering the architecture that allowed the bug to exist.</p>
+          <p>This applies everywhere: a failing grade means the study system is broken, not the student. A broken deployment means the process is broken, not the code. A missed market means the validation system was skipped, not that the idea was bad. Always trace one level deeper than the symptom.</p>
+          <div class="proof">Applied consistently, this converts reactive problem-solving into proactive system design. You stop fighting fires because you redesigned the building.</div>
+        </div>
+      </div>
+
+      <div class="axiom" onclick="toggleAxiom(this)">
+        <div class="axiom-top">
+          <span class="axiom-num">02</span>
+          <span class="axiom-title">Build first, validate honestly</span>
+          <span class="axiom-toggle">+</span>
+        </div>
+        <div class="axiom-body">
+          <p>A working model — even a broken one — reveals constraints that no plan can predict. You cannot learn what a system needs until you have built enough of it to see where it resists you. Build the minimum that can be tested, then test it against real conditions.</p>
+          <p>The trap is building complex systems before validating that anyone needs them. Complexity is seductive. It feels like progress. It is often avoidance. The question to ask before scaling anything is: <em>does evidence exist that this solves a problem someone will pay to have solved?</em></p>
+          <div class="proof">The correct order is always: build a sketch → encounter real friction → validate demand → scale what survives. Not the reverse.</div>
+        </div>
+      </div>
+
+      <div class="axiom" onclick="toggleAxiom(this)">
+        <div class="axiom-top">
+          <span class="axiom-num">03</span>
+          <span class="axiom-title">Every system has an attack surface</span>
+          <span class="axiom-toggle">+</span>
+        </div>
+        <div class="axiom-body">
+          <p>Security thinking is not a specialty. It is a foundational literacy. Every system — software, financial, educational, relational — has points of failure that an adversary (or simply entropy) will find. The builder who does not model their own attack surface has outsourced that analysis to whoever comes next.</p>
+          <p>Ask of everything you build: <em>What would break this if someone wanted to? What decays if I stop paying attention? What assumption am I making that isn't guaranteed?</em> These questions do not slow construction — they make what you build worth trusting.</p>
+          <div class="proof">A pen test is not a security product. It's a reading comprehension check on your own system. Run it on everything, not just code.</div>
+        </div>
+      </div>
+
+      <div class="axiom" onclick="toggleAxiom(this)">
+        <div class="axiom-top">
+          <span class="axiom-num">04</span>
+          <span class="axiom-title">Signal density is respect</span>
+          <span class="axiom-toggle">+</span>
+        </div>
+        <div class="axiom-body">
+          <p>Every word you write that adds no new information is an extraction from the reader's attention. Attention is finite. Wasting it on padding — preambles, summaries of what you just said, filler phrases — is a form of disrespect, whether you intend it or not.</p>
+          <p>Apply this to everything you produce: code, messages, documents, explanations. If a sentence can be removed without losing information, remove it. If a function can be merged without losing clarity, merge it. Compression is a discipline. The goal is maximum signal per unit of time consumed.</p>
+          <div class="proof">Dense writing forces you to actually understand what you're saying. You cannot compress something you haven't fully thought through. Write dense. Think clearer.</div>
+        </div>
+      </div>
+
+      <div class="axiom" onclick="toggleAxiom(this)">
+        <div class="axiom-top">
+          <span class="axiom-num">05</span>
+          <span class="axiom-title">Income must compound, not consume</span>
+          <span class="axiom-toggle">+</span>
+        </div>
+        <div class="axiom-body">
+          <p>Time-for-money is a linear trap. Every hour you trade for a flat rate is an hour that can never be reinvested. The goal is not to earn more money — it is to build structures that generate income while you are building other structures. Compounding applies to assets, knowledge, and audiences, not just interest.</p>
+          <p>This does not mean passive income is easy or guaranteed. It means the question to ask of every income activity is: <em>does this build a durable asset, or does it only produce cash once?</em> Cash is fuel. Assets are engines. Build more engines than fuel runs.</p>
+          <div class="proof">A digital product sold 1,000 times is not 1,000 sales events. It is one construction event that happened to sell 1,000 times. Build the thing once. Sell it indefinitely.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- SELF-EDUCATION PROTOCOL -->
+<div class="wrapper">
+  <section id="protocol">
+    <div class="section-header">
+      <span class="section-num">02 · The Protocol</span>
+      <h2>Self-Education Without Institutional Support</h2>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:32px;font-family:var(--mono);">Validated against: ATD accounting self-study, cybersecurity red team training, full-stack development, and statistical prediction systems. No tutor required at any step.</p>
+
+    <div class="protocol-steps">
+
+      <div class="proto-step">
+        <div class="proto-step-num">01</div>
+        <div class="proto-step-content">
+          <div class="proto-step-title">Define the end-state precisely</div>
+          <p>Not "learn cybersecurity." Define: <code>Pass ATD Paper 3 with 65+</code> or <code>Build working C2 with AMSI bypass</code>. The vaguer the goal, the longer you will spend in preparation that never becomes execution. Write the end-state in a single sentence. If you cannot, the goal is not yet a goal — it is a direction.</p>
+        </div>
+      </div>
+
+      <div class="proto-step">
+        <div class="proto-step-num">02</div>
+        <div class="proto-step-content">
+          <div class="proto-step-title">Map the dependency graph</div>
+          <p>Every domain has a knowledge graph: things you must know before you can learn the next thing. Start from your end-state and work backwards. What must be true for that outcome to be achievable? What must be true before that? You are building a directed acyclic graph of prerequisites. Identify the critical path and only walk it. Everything off the critical path is optional until the end-state is reached.</p>
+        </div>
+      </div>
+
+      <div class="proto-step">
+        <div class="proto-step-num">03</div>
+        <div class="proto-step-content">
+          <div class="proto-step-title">Engage the hardest primary source first</div>
+          <p>Never start with a tutorial, summary, or explainer. Start with the official specification, the exam syllabus, the research paper, the source code. It will be harder. It will take longer. It will force you to build the mental model correctly from the beginning rather than patching a shallow one later. Simplified sources are for verification, not foundation.</p>
+        </div>
+      </div>
+
+      <div class="proto-step">
+        <div class="proto-step-num">04</div>
+        <div class="proto-step-content">
+          <div class="proto-step-title">Build something on day one</div>
+          <p>Do not study for more than one session before building a project that uses what you studied. It does not need to work. It needs to fail in instructive ways. The build surfaces gaps the reading cannot. The build creates stakes the reading doesn't have. The build is the only way to know what you actually retained versus what you merely recognised.</p>
+        </div>
+      </div>
+
+      <div class="proto-step">
+        <div class="proto-step-num">05</div>
+        <div class="proto-step-content">
+          <div class="proto-step-title">Use AI as a senior colleague, not an oracle</div>
+          <p>A senior colleague pushes back. They question your assumptions. They tell you when you are wrong. If your AI interactions are only confirmatory — asking it to explain things you agree with — you are using it as a mirror, not a tool. The correct usage pattern: explain your current understanding, ask it to attack that understanding, then argue back. What survives that process is actual knowledge.</p>
+        </div>
+      </div>
+
+      <div class="proto-step">
+        <div class="proto-step-num">06</div>
+        <div class="proto-step-content">
+          <div class="proto-step-title">Test under adversarial conditions only</div>
+          <p>Past papers, CTF challenges, live traffic, real data, staged attacks. Self-assessment against material you already understand is not testing — it is rehearsal. You need conditions that do not know you are coming. Scheduled "practice sessions" with known material measure confidence, not competence. Only adversarial conditions measure competence.</p>
+        </div>
+      </div>
+
+      <div class="proto-step">
+        <div class="proto-step-num">07</div>
+        <div class="proto-step-content">
+          <div class="proto-step-title">Document every failure in writing</div>
+          <p>The failure log is more valuable than the success log. Successes are outcomes. Failures are data about where your model of reality diverged from reality. Write: what you expected, what happened, why you think they diverged, and what the corrected model is. Over time, this document becomes a map of your error patterns — and error patterns are the most predictive thing about future performance.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="warning-block">
+      <strong>Critical Anti-Pattern:</strong><br>
+      Studying indefinitely before building is not preparation — it is fear dressed as discipline. The moment you recognise this pattern in yourself, treat it as a security alert. Something downstream is being avoided. Identify what it is. Build it first.
+    </div>
+  </section>
+</div>
+
+<!-- DECISION ENGINE -->
+<div class="wrapper">
+  <section id="engine">
+    <div class="section-header">
+      <span class="section-num">03 · Decision Engine</span>
+      <h2>The Builder's Fork Resolver</h2>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:32px;font-family:var(--mono);">An interactive decision tree. Run it when you are stuck at a fork. It does not tell you what to do — it forces you to be honest about what you're actually facing.</p>
+
+    <div id="decision-engine">
+      <div class="engine-header">
+        <div class="dot"></div>
+        Decision Engine · Active
+      </div>
+      <div class="engine-prompt" id="enginePrompt">You are facing a decision. What is the nature of your situation?</div>
+      <div id="engineResult" class="engine-result"></div>
+      <div class="engine-options" id="engineOptions"></div>
+      <button class="engine-reset" id="engineReset" style="display:none" onclick="resetEngine()">↺ Start Over</button>
+    </div>
+  </section>
+</div>
+
+<!-- INCOME ARCHITECTURE -->
+<div class="wrapper">
+  <section id="income">
+    <div class="section-header">
+      <span class="section-num">04 · Income Architecture</span>
+      <h2>Building Revenue Without a Payroll</h2>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:32px;font-family:var(--mono);">Specific to the context of a self-taught technical builder in an emerging market with unreliable institutional pathways. Not general advice — this is the actual architecture.</p>
+
+    <div class="income-grid">
+
+      <div class="income-card">
+        <div class="income-card-tier">Tier 1 · Foundation</div>
+        <h3>Productized Skills</h3>
+        <p>Convert a specific skill into a deliverable with a fixed scope and price. Not "I do web development" — "I build static landing pages with contact forms, delivered in 5 days, for $80." Fixed scope eliminates negotiation. Deliverables scale better than time.</p>
+        <div class="multiplier">× time · Linear but immediate</div>
+      </div>
+
+      <div class="income-card">
+        <div class="income-card-tier">Tier 2 · Leverage</div>
+        <h3>Digital Products</h3>
+        <p>Documents, templates, guides, datasets, code packages, study materials. Built once, sold repeatedly. The key is specificity: a general "Excel template" competes with everything. "ATD Level 2 complete question bank with worked answers" competes with almost nothing. Niche depth is the competitive moat.</p>
+        <div class="multiplier">× infinity · Non-linear, delayed</div>
+      </div>
+
+      <div class="income-card">
+        <div class="income-card-tier">Tier 3 · Compounding</div>
+        <h3>Systems That Run Without You</h3>
+        <p>Automated pipelines, subscription tools, data products, trained models. Requires the highest upfront investment of any tier but is the only tier where income genuinely compounds. The question to ask: if you disappeared for three months, would this still generate value? If no, it's not Tier 3 yet.</p>
+        <div class="multiplier">× compound · High risk, highest ceiling</div>
+      </div>
+
+      <div class="income-card">
+        <div class="income-card-tier">Tier 4 · Distribution</div>
+        <h3>Audience as Asset</h3>
+        <p>An audience is a durable, portable asset. It amplifies every other tier. A Gumroad product with no distribution is a product in a locked room. The same product with 2,000 followers who trust your judgment is a revenue event waiting to happen. Build the audience before you need it, not after.</p>
+        <div class="multiplier">× all tiers · The multiplier layer</div>
+      </div>
+
+      <div class="income-truth">
+        <span class="label">The Rule No One Says Out Loud</span>
+        In emerging markets, the failure mode is not lack of skill — it is pricing for the local market while competing in the global one. Your competition for a digital product is not the person in your neighbourhood. It is the person in your category on the global platform. Price and position accordingly. A $5 product does not cost less to build than a $50 product. The only difference is how much you believe in its value.
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- HOW TO USE -->
+<div class="wrapper">
+  <section id="use">
+    <div class="section-header">
+      <span class="section-num">05 · How to Use This</span>
+      <h2>For Anyone Who Found This</h2>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:32px;font-family:var(--mono);">This document needs no account, no subscription, no connection. It is a single HTML file. It will run in any browser, on any device, forever. Here is how to use it effectively.</p>
+
+    <div class="how-block">
+      <div class="how-row">
+        <div class="how-label">If you're lost</div>
+        <div class="how-text">Go to the Decision Engine (Section 03). Answer the questions honestly. The output will not tell you what to do — it will force you to name what you are actually avoiding. That naming is 80% of the solution.</div>
+      </div>
+      <div class="how-row">
+        <div class="how-label">If you're starting</div>
+        <div class="how-text">Read the Five Axioms (Section 01). All of them. Open each one. These are not motivational — they are structural. If any of them conflicts with how you currently operate, that conflict is worth examining before you build anything.</div>
+      </div>
+      <div class="how-row">
+        <div class="how-label">If you're learning</div>
+        <div class="how-text">Follow the Self-Education Protocol (Section 02) in order. Do not skip steps 3 and 4. Those two steps are where most self-taught people fail — they read indefinitely and delay building. The protocol breaks that pattern by design.</div>
+      </div>
+      <div class="how-row">
+        <div class="how-label">If you're broke</div>
+        <div class="how-text">Start at Income Architecture Tier 1 (Section 04). Not Tier 3. Not Tier 4. Tier 1 is the only tier that produces cash while you are still building the others. Do not skip to complexity before you have money to survive complexity.</div>
+      </div>
+      <div class="how-row">
+        <div class="how-label">If you're stuck</div>
+        <div class="how-text">Apply Axiom 01: this is a symptom, not the disease. Write down what you expected to happen versus what is actually happening. The gap between those two sentences is the real problem. Fix the gap, not the symptom.</div>
+      </div>
+      <div class="how-row">
+        <div class="how-label">Sharing this</div>
+        <div class="how-text">Save the HTML file. Share the file. Host it anywhere. No permissions needed, no attribution required. The only requirement is that you do not sell it — it was left freely and should remain free.</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- FOOTER -->
+<div class="wrapper">
+  <footer>
+    <div class="footer-sig">
+      <span>The Builder's Protocol</span><br>
+      Authored in <span>Nairobi, Kenya</span> · Left for anyone who needs it<br>
+      No account. No maintenance. No expiry.<br><br>
+      <span>Build something the world hasn't seen yet.</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+// =========================================================
+// AXIOM ACCORDION
+// =========================================================
+function toggleAxiom(el) {
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.axiom.open').forEach(a => a.classList.remove('open'));
+  if (!isOpen) el.classList.add('open');
+}
+
+// =========================================================
+// DECISION ENGINE
+// =========================================================
+const tree = {
+  root: {
+    prompt: "You are facing a decision. What best describes your situation?",
+    options: [
+      { label: "I want to build something new", next: "new_build" },
+      { label: "I'm stuck on something I'm already building", next: "stuck" },
+      { label: "I'm not sure whether to keep going or stop", next: "quit_check" },
+      { label: "I need to make money soon", next: "money_now" },
+      { label: "I don't know what to do next", next: "lost" }
+    ]
+  },
+  new_build: {
+    prompt: "Before building: does concrete evidence exist that people want this solved?",
+    options: [
+      { label: "Yes — I have seen people pay for something like this", next: "build_go" },
+      { label: "I think so, but I haven't confirmed it", next: "validate_first" },
+      { label: "No — but I believe in the idea", next: "belief_warning" }
+    ]
+  },
+  build_go: {
+    verdict: "BUILD IT",
+    result: "You have demand signal. Build the minimum thing that delivers the core value. Not the complete vision — the earliest version that someone would pay for or use. Ship it before you are proud of it. Pride is a delay mechanism. Get real feedback first, then refine.",
+    options: []
+  },
+  validate_first: {
+    verdict: "VALIDATE BEFORE BUILDING",
+    result: "Spend no more than 72 hours confirming demand before writing a line of production code. Find three people who face the problem you're solving. Ask if they would pay to have it solved. If none of them say yes without prompting, your model of their problem is wrong. Fix the model first.",
+    options: []
+  },
+  belief_warning: {
+    prompt: "Is this belief based on a problem you personally face and have tried to solve another way?",
+    options: [
+      { label: "Yes — I face this problem myself and nothing else works", next: "build_yourself" },
+      { label: "No — I believe others face it but I don't", next: "dangerous_territory" }
+    ]
+  },
+  build_yourself: {
+    verdict: "BUILD IT — YOU ARE THE USER",
+    result: "Building for a problem you personally have is the most reliable validation signal that exists. You understand the failure modes. You know what 'good enough' looks like. Build the thing you wish existed. If you use it consistently, others like you will too.",
+    options: []
+  },
+  dangerous_territory: {
+    verdict: "HIGH RISK — VALIDATE BEFORE INVESTING HEAVILY",
+    result: "Building solutions to problems you don't personally face, without demand confirmation, is the most common source of wasted months. You are optimizing for an assumption. Before you spend significant time here: find three people who have this problem and watch how they currently solve it. The current workaround tells you more than any interview.",
+    options: []
+  },
+  stuck: {
+    prompt: "What kind of stuck are you?",
+    options: [
+      { label: "A specific technical problem I can't solve", next: "technical_stuck" },
+      { label: "I don't know what to do next in the project", next: "direction_stuck" },
+      { label: "I'm losing motivation to continue", next: "motivation_stuck" }
+    ]
+  },
+  technical_stuck: {
+    verdict: "DIAGNOSE THE SYSTEM, NOT THE SYMPTOM",
+    result: "Write out exactly what you expected to happen versus what is actually happening. That gap is the problem — not the surface error. If you've been stuck for more than 2 hours: stop, write a plain-language description of the problem as if explaining it to someone who doesn't know your code. The act of writing usually exposes the assumption that broke. If it doesn't, that description is now the exact thing to paste into an AI or forum.",
+    options: []
+  },
+  direction_stuck: {
+    verdict: "RETURN TO END-STATE",
+    result: "You don't know what to do next because you've lost sight of what done looks like. Write one sentence: what does this project look like when it's complete enough to be useful to someone? Now ask: what is the single thing most blocking that outcome right now? Do only that thing. Direction is not recovered by planning — it is recovered by returning to the single most important unfinished piece.",
+    options: []
+  },
+  motivation_stuck: {
+    prompt: "Is the loss of motivation recent, or has it been building for weeks?",
+    options: [
+      { label: "Recent — something specific happened", next: "recent_demotivation" },
+      { label: "Gradual — I've been forcing it for a while", next: "chronic_demotivation" }
+    ]
+  },
+  recent_demotivation: {
+    verdict: "EXTERNAL EVENT — DO NOT MAKE STRUCTURAL DECISIONS TODAY",
+    result: "A specific event damaged your energy. This is temporary and not diagnostic of the project. Do not kill the project, pivot, or make major decisions while the event is still active in your nervous system. Wait 48–72 hours. Then reassess. If the project still doesn't interest you after the event has passed, that is different information.",
+    options: []
+  },
+  chronic_demotivation: {
+    verdict: "THE PROJECT HAS DRIFTED FROM ITS ORIGINAL SIGNAL",
+    result: "When motivation drains slowly, it usually means the project has grown into something you didn't originally intend. Go back to why you started. Write it down. Then write what the project currently is. If they are significantly different, you are not losing motivation for the project — you are losing motivation for the version of the project it became. You can rebuild the original version, or you can be honest that the project is done.",
+    options: []
+  },
+  quit_check: {
+    prompt: "You're considering stopping something. What kind of stopping?",
+    options: [
+      { label: "Stopping a project that isn't working", next: "stop_project" },
+      { label: "Stopping a study path or skill track", next: "stop_learning" },
+      { label: "Stopping an income stream that feels wrong", next: "stop_income" }
+    ]
+  },
+  stop_project: {
+    verdict: "RUN THE KILL CRITERIA FIRST",
+    result: "Before stopping, answer: (1) Have you shipped something real and measured a real result? (2) Have you had at least one person outside your circle use it? (3) Have you made a change based on actual feedback — not your own judgment? If any of these is no, you have not reached the information threshold required to make a valid quit decision. Build the minimum that makes all three yes. Then decide.",
+    options: []
+  },
+  stop_learning: {
+    verdict: "DISTINGUISH BOREDOM FROM COMPLETION",
+    result: "Ask: have I hit the 80% threshold — the point where I can do the core thing competently, even if imperfectly? If yes, stopping is appropriate — switch to building with the skill rather than studying it. If no, the boredom is a feature, not a signal. All skill acquisition has a valley of discomfort between early wins and genuine competence. This is usually where people stop. Push through it once. You will recognise the valley next time.",
+    options: []
+  },
+  stop_income: {
+    verdict: "CATEGORISE THE WRONG FEELING",
+    result: "Write the specific thing that feels wrong: the work itself, the type of client, the price, the time cost, or the alignment with what you're building. These require different responses. Hating the work means product-market fit is wrong. Hating the client means you have a positioning problem. Hating the price means you undercharged. Most income streams that 'feel wrong' are actually income streams that need reframing, not elimination.",
+    options: []
+  },
+  money_now: {
+    verdict: "TIER 1 ONLY — DO NOT THINK ABOUT TIERS 2-4 YET",
+    result: "When you need money within the next 30 days, there is only one correct move: productize a skill you already have at a price point with known demand. Do not build a product, a platform, or a system this month. Identify the specific thing you can do that someone with money would pay to have done. Price it. Offer it to 10 people. This is not your long-term architecture — this is your operating cash while you build the architecture. Get the cash first.",
+    options: []
+  },
+  lost: {
+    verdict: "GROUND YOURSELF IN WHAT IS ALREADY TRUE",
+    result: "When the path disappears, return to inventory. Write three things: (1) A skill I have that is genuinely above average. (2) A problem I personally face that no good solution exists for. (3) Someone I could help in the next 24 hours using what I already know. These three things are the minimum unit of forward motion. Do not plan anything beyond the next 24-hour action until you've done all three.",
+    options: []
+  }
+};
+
+let currentNode = 'root';
+
+function renderNode(key) {
+  const node = tree[key];
+  const prompt = document.getElementById('enginePrompt');
+  const options = document.getElementById('engineOptions');
+  const result = document.getElementById('engineResult');
+  const reset = document.getElementById('engineReset');
+
+  prompt.textContent = node.prompt || '';
+  options.innerHTML = '';
+  result.classList.remove('visible');
+  result.innerHTML = '';
+
+  if (node.verdict && node.result) {
+    result.innerHTML = `<div class="verdict">${node.verdict}</div>${node.result}`;
+    result.classList.add('visible');
+    prompt.textContent = '';
+    reset.style.display = 'block';
+    return;
+  }
+
+  if (node.options && node.options.length) {
+    node.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'engine-btn';
+      btn.textContent = opt.label;
+      btn.onclick = () => {
+        currentNode = opt.next;
+        renderNode(opt.next);
+        reset.style.display = 'block';
+      };
+      options.appendChild(btn);
+    });
+  }
+}
+
+function resetEngine() {
+  currentNode = 'root';
+  document.getElementById('engineReset').style.display = 'none';
+  renderNode('root');
+}
+
+renderNode('root');
+
+// =========================================================
+// SCROLL REVEAL (lightweight, no deps)
+// =========================================================
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.opacity = '1';
+      entry.target.style.transform = 'translateY(0)';
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.axiom, .proto-step, .income-card, .how-row').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(12px)';
+  el.style.transition = 'opacity 0.45s ease, transform 0.45s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>
